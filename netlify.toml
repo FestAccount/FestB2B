@@ -8,6 +8,7 @@
   to = "https://fest-b2b-backend.onrender.com/api/:splat"
   status = 200
   force = true
+  headers = {Access-Control-Allow-Origin = "*"}
 
 [[redirects]]
   from = "/*"
@@ -24,6 +25,9 @@
     X-Frame-Options = "DENY"
     X-XSS-Protection = "1; mode=block"
     Cache-Control = "public, max-age=31536000"
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
+    Access-Control-Allow-Headers = "Content-Type, Authorization"
     
 [[headers]]
   for = "/assets/*"
