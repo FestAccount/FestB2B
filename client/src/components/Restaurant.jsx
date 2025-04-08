@@ -9,6 +9,9 @@ const Restaurant = () => {
   const [menus, setMenus] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedRestaurant, setEditedRestaurant] = useState(null);
+  const [notification, setNotification] = useState(null);
 
   useEffect(() => {
     fetchRestaurants();
@@ -39,7 +42,57 @@ const Restaurant = () => {
 
   const handleRestaurantClick = async (restaurant) => {
     setSelectedRestaurant(restaurant);
+    setEditedRestaurant(restaurant);
     await fetchMenus(restaurant._id);
+  };
+
+  const handleEditClick = () => {
+    setIsEditing(true);
+    setEditedRestaurant({ ...selectedRestaurant });
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setEditedRestaurant(selectedRestaurant);
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    if (name.includes('.')) {
+      const [parent, child] = name.split('.');
+      setEditedRestaurant(prev => ({
+        ...prev,
+        [parent]: {
+          ...prev[parent],
+          [child]: value
+        }
+      }));
+    } else {
+      setEditedRestaurant(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
+  };
+
+  const handleSave = async () => {
+    try {
+      const response = await apiClient.put(`/restaurant/${editedRestaurant._id}`, editedRestaurant);
+      setSelectedRestaurant(response.data);
+      setIsEditing(false);
+      setNotification({
+        type: 'success',
+        message: 'Restaurant mis à jour avec succès!'
+      });
+      setTimeout(() => setNotification(null), 3000);
+    } catch (err) {
+      console.error('Erreur lors de la mise à jour:', err);
+      setNotification({
+        type: 'error',
+        message: 'Erreur lors de la mise à jour du restaurant'
+      });
+      setTimeout(() => setNotification(null), 3000);
+    }
   };
 
   if (loading) return <div className="flex justify-center items-center h-screen">Chargement...</div>;
@@ -54,6 +107,15 @@ const Restaurant = () => {
           <p className="text-ios-gray-text text-center">Pro</p>
         </div>
       </header>
+
+      {/* Notification */}
+      {notification && (
+        <div className={`fixed top-4 right-4 p-4 rounded-lg shadow-lg ${
+          notification.type === 'success' ? 'bg-green-500' : 'bg-red-500'
+        } text-white`}>
+          {notification.message}
+        </div>
+      )}
 
       {/* Content */}
       <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
@@ -98,7 +160,7 @@ const Restaurant = () => {
                   <div className="flex items-center text-gray-500">
                     <span className="material-icons text-sm mr-1">people</span>
                     <span className="text-sm">
-                      {restaurant.midi} couverts midi, {restaurant.soir} couverts soir
+                      {restaurant.capacite?.midi} couverts midi, {restaurant.capacite?.soir} couverts soir
                     </span>
                   </div>
                   <div className="flex flex-wrap gap-2 mt-2">
@@ -117,98 +179,139 @@ const Restaurant = () => {
           ))}
         </div>
 
-        {/* Détails du restaurant sélectionné et ses menus */}
+        {/* Détails du restaurant sélectionné */}
         {selectedRestaurant && (
           <div className="bg-white rounded-2xl shadow-sm overflow-hidden mt-8">
             <div className="p-6">
-              <h2 className="text-2xl font-semibold text-primary mb-6">Menus de {selectedRestaurant.nom}</h2>
+              <div className="flex justify-between items-start mb-6">
+                {isEditing ? (
+                  <div className="w-full space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Nom</label>
+                      <input
+                        type="text"
+                        name="nom"
+                        value={editedRestaurant.nom}
+                        onChange={handleInputChange}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Description</label>
+                      <textarea
+                        name="description"
+                        value={editedRestaurant.description}
+                        onChange={handleInputChange}
+                        rows="3"
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Adresse</label>
+                      <input
+                        type="text"
+                        name="adresse"
+                        value={editedRestaurant.adresse}
+                        onChange={handleInputChange}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Horaires Midi</label>
+                        <input
+                          type="text"
+                          name="horaires.midi"
+                          value={editedRestaurant.horaires?.midi}
+                          onChange={handleInputChange}
+                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Horaires Soir</label>
+                        <input
+                          type="text"
+                          name="horaires.soir"
+                          value={editedRestaurant.horaires?.soir}
+                          onChange={handleInputChange}
+                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Capacité Midi</label>
+                        <input
+                          type="number"
+                          name="capacite.midi"
+                          value={editedRestaurant.capacite?.midi}
+                          onChange={handleInputChange}
+                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Capacité Soir</label>
+                        <input
+                          type="number"
+                          name="capacite.soir"
+                          value={editedRestaurant.capacite?.soir}
+                          onChange={handleInputChange}
+                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex justify-end space-x-4 mt-6">
+                      <button
+                        onClick={handleCancelEdit}
+                        className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                      >
+                        Annuler
+                      </button>
+                      <button
+                        onClick={handleSave}
+                        className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90"
+                      >
+                        Enregistrer
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <h2 className="text-2xl font-semibold text-primary">Informations du restaurant</h2>
+                    <button
+                      onClick={handleEditClick}
+                      className="p-2 text-primary hover:bg-gray-100 rounded-full"
+                    >
+                      <span className="material-icons">edit</span>
+                    </button>
+                  </>
+                )}
+              </div>
               
-              {/* Entrées */}
-              <div className="mb-8">
-                <h3 className="text-lg font-semibold text-primary mb-4">Entrées</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {menus
-                    .filter(menu => menu.type === 'entrée')
-                    .map(menu => (
-                      <div key={menu._id} className="bg-gray-50 rounded-lg overflow-hidden">
-                        {menu.imageUrl && (
-                          <img 
-                            src={menu.imageUrl} 
-                            alt={menu.nom}
-                            className="w-full h-48 object-cover"
-                          />
-                        )}
-                        <div className="p-4">
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <h4 className="font-medium">{menu.nom}</h4>
-                              <p className="text-gray-600 text-sm mt-1">{menu.description}</p>
-                            </div>
-                            <span className="font-medium">{menu.prix.toFixed(2)}€</span>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+              {!isEditing && (
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="font-medium text-gray-900">{selectedRestaurant.nom}</h3>
+                    <p className="text-gray-600 mt-1">{selectedRestaurant.description}</p>
+                  </div>
+                  <div className="flex items-center text-gray-500">
+                    <span className="material-icons text-sm mr-1">location_on</span>
+                    <span>{selectedRestaurant.adresse}</span>
+                  </div>
+                  <div className="flex items-center text-gray-500">
+                    <span className="material-icons text-sm mr-1">schedule</span>
+                    <span>
+                      Midi: {selectedRestaurant.horaires?.midi}, Soir: {selectedRestaurant.horaires?.soir}
+                    </span>
+                  </div>
+                  <div className="flex items-center text-gray-500">
+                    <span className="material-icons text-sm mr-1">people</span>
+                    <span>
+                      {selectedRestaurant.capacite?.midi} couverts midi, {selectedRestaurant.capacite?.soir} couverts soir
+                    </span>
+                  </div>
                 </div>
-              </div>
-
-              {/* Plats */}
-              <div className="mb-8">
-                <h3 className="text-lg font-semibold text-primary mb-4">Plats</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {menus
-                    .filter(menu => menu.type === 'plat')
-                    .map(menu => (
-                      <div key={menu._id} className="bg-gray-50 rounded-lg overflow-hidden">
-                        {menu.imageUrl && (
-                          <img 
-                            src={menu.imageUrl} 
-                            alt={menu.nom}
-                            className="w-full h-48 object-cover"
-                          />
-                        )}
-                        <div className="p-4">
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <h4 className="font-medium">{menu.nom}</h4>
-                              <p className="text-gray-600 text-sm mt-1">{menu.description}</p>
-                            </div>
-                            <span className="font-medium">{menu.prix.toFixed(2)}€</span>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                </div>
-              </div>
-
-              {/* Desserts */}
-              <div className="mb-8">
-                <h3 className="text-lg font-semibold text-primary mb-4">Desserts</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {menus
-                    .filter(menu => menu.type === 'dessert')
-                    .map(menu => (
-                      <div key={menu._id} className="bg-gray-50 rounded-lg overflow-hidden">
-                        {menu.imageUrl && (
-                          <img 
-                            src={menu.imageUrl} 
-                            alt={menu.nom}
-                            className="w-full h-48 object-cover"
-                          />
-                        )}
-                        <div className="p-4">
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <h4 className="font-medium">{menu.nom}</h4>
-                              <p className="text-gray-600 text-sm mt-1">{menu.description}</p>
-                            </div>
-                            <span className="font-medium">{menu.prix.toFixed(2)}€</span>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                </div>
-              </div>
+              )}
             </div>
           </div>
         )}

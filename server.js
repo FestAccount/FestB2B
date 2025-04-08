@@ -105,6 +105,35 @@ router.get('/restaurant', async (req, res) => {
   }
 });
 
+// Route pour mettre à jour un restaurant
+router.put('/restaurant/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updateData = req.body;
+
+    const updatedRestaurant = await Restaurant.findByIdAndUpdate(
+      id,
+      updateData,
+      { new: true, runValidators: true }
+    ).select('-__v');
+
+    if (!updatedRestaurant) {
+      return res.status(404).json({
+        error: 'Non trouvé',
+        message: 'Restaurant non trouvé'
+      });
+    }
+
+    res.json(updatedRestaurant);
+  } catch (error) {
+    console.error('Erreur lors de la mise à jour du restaurant:', error);
+    res.status(500).json({
+      error: 'Erreur serveur',
+      message: 'Impossible de mettre à jour le restaurant'
+    });
+  }
+});
+
 // Monter les routes sous /api
 app.use('/api', router);
 
