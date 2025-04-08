@@ -47,9 +47,43 @@ app.use((err, req, res, next) => {
 });
 
 // Routes de l'API
-app.get('/api/health', (req, res) => {
+const router = express.Router();
+
+// Route de test
+router.get('/health', (req, res) => {
   res.json({ status: 'OK', message: 'API opérationnelle' });
 });
+
+// Route pour les menus
+router.get('/menu', (req, res) => {
+  // TODO: Implémenter la logique de récupération des menus depuis la base de données
+  res.json([
+    {
+      _id: '1',
+      nom: 'Menu Test',
+      description: 'Description du menu test',
+      prix: 25.00,
+      type: 'plat'
+    }
+  ]);
+});
+
+// Route pour les restaurants
+router.get('/restaurant', (req, res) => {
+  // TODO: Implémenter la logique de récupération des restaurants depuis la base de données
+  res.json([
+    {
+      _id: '1',
+      nom: 'Restaurant Test',
+      description: 'Description du restaurant test',
+      adresse: 'Adresse test',
+      cuisine: ['Français']
+    }
+  ]);
+});
+
+// Monter les routes sous /api
+app.use('/api', router);
 
 // Port d'écoute
 const PORT = process.env.PORT || 3001;
