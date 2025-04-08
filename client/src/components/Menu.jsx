@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import apiClient from '../api/config';
 import AddItemModal from './AddItemModal';
 import EditItemModal from './EditItemModal';
+import { defaultMenuItems } from '../data/defaultMenu';
 
 const CATEGORIES = ['Entrées', 'Plats', 'Desserts', 'Boissons'];
 
@@ -33,17 +34,18 @@ function Menu() {
       }
       
       if (response.data.length === 0) {
-        console.log('No items found in the response');
+        console.log('No items found, using default data');
+        setItems(defaultMenuItems);
       } else {
         console.log('Items found:', response.data.length);
         console.log('First item example:', response.data[0]);
+        setItems(response.data);
       }
-      
-      setItems(response.data);
     } catch (err) {
       console.error('Error fetching menu items:', err);
-      setError(err.message || 'Failed to fetch menu items');
-      setItems([]);
+      console.log('Using default menu items due to error');
+      setItems(defaultMenuItems);
+      setError(null);
     } finally {
       setLoading(false);
     }
