@@ -43,8 +43,9 @@ mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log('Connecté à MongoDB Atlas'))
   .catch(err => console.error('Erreur de connexion à MongoDB:', err));
 
-// Import du modèle MenuItem
+// Import des modèles
 const MenuItem = require('./models/MenuItem');
+const Restaurant = require('./models/Restaurant');
 
 // Gestionnaire d'erreurs CORS
 app.use((err, req, res, next) => {
@@ -86,18 +87,22 @@ router.get('/menu', async (req, res) => {
   }
 });
 
-// Route pour les restaurants
-router.get('/restaurant', (req, res) => {
-  // TODO: Implémenter la logique de récupération des restaurants depuis la base de données
-  res.json([
-    {
-      _id: '1',
-      nom: 'Restaurant Test',
-      description: 'Description du restaurant test',
-      adresse: 'Adresse test',
-      cuisine: ['Français']
-    }
-  ]);
+// Route pour les restaurants - maintenant avec MongoDB
+router.get('/restaurant', async (req, res) => {
+  try {
+    // Récupérer tous les restaurants, triés par nom
+    const restaurants = await Restaurant.find()
+      .sort({ name: 1 })
+      .select('-__v'); // Exclure le champ __v
+
+    res.json(restaurants);
+  } catch (error) {
+    console.error('Erreur lors de la récupération des restaurants:', error);
+    res.status(500).json({
+      error: 'Erreur serveur',
+      message: 'Impossible de récupérer les restaurants'
+    });
+  }
 });
 
 // Monter les routes sous /api
