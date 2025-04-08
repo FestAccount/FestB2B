@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import api from '../utils/axios';
+import apiClient from '../api/config';
 import { useNavigate } from 'react-router-dom';
 
 const Restaurant = () => {
@@ -35,7 +35,7 @@ const Restaurant = () => {
     try {
       setLoading(true);
       console.log('Début de la récupération des infos restaurant');
-      const response = await api.get('/restaurant');
+      const response = await apiClient.get('/restaurant');
       const data = response.data;
       console.log('Données restaurant reçues:', data);
       
@@ -118,7 +118,7 @@ const Restaurant = () => {
         // Upload to Cloudinary
         console.log('Envoi de l\'image au serveur');
         try {
-          const uploadResponse = await api.post('/upload-image', {
+          const uploadResponse = await apiClient.post('/upload-image', {
             image: base64Image
           });
           imageUrl = uploadResponse.data.imageUrl;
@@ -146,7 +146,7 @@ const Restaurant = () => {
       };
 
       console.log('Données à envoyer pour mise à jour:', updatedData);
-      const response = await api.put('/restaurant', updatedData);
+      const response = await apiClient.put('/restaurant', updatedData);
       console.log('Réponse de mise à jour reçue:', response.data);
       
       setRestaurantInfo(response.data);

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import api from '../utils/axios';
+import apiClient from '../api/config';
 import AddItemModal from './AddItemModal';
 import EditItemModal from './EditItemModal';
 
@@ -23,7 +23,7 @@ function Menu() {
       setLoading(true);
       setError(null);
       
-      const response = await api.get('/menu');
+      const response = await apiClient.get('/menu');
       console.log('API Response:', response);
       console.log('API Response Data:', response.data);
       
