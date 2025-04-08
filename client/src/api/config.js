@@ -1,13 +1,25 @@
 import axios from 'axios';
 
-const BASE_URL = 'https://fest-b2b-backend.onrender.com/api';
-
 const apiClient = axios.create({
-  baseURL: BASE_URL,
+  baseURL: '/api',
   headers: {
     'Content-Type': 'application/json',
   },
   timeout: 10000,
 });
+
+// Add error handling
+apiClient.interceptors.response.use(
+  response => response,
+  error => {
+    console.error('API Error:', {
+      url: error.config?.url,
+      method: error.config?.method,
+      status: error.response?.status,
+      data: error.response?.data
+    });
+    return Promise.reject(error);
+  }
+);
 
 export default apiClient; 

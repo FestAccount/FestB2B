@@ -8,6 +8,11 @@
   to = "https://fest-b2b-backend.onrender.com/api/:splat"
   status = 200
   force = true
+  headers = {
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
+    Access-Control-Allow-Headers = "Origin, X-Requested-With, Content-Type, Accept, Authorization"
+  }
 
 [[redirects]]
   from = "/*"
@@ -16,4 +21,11 @@
 
 [build.environment]
   NODE_VERSION = "18"
-  NPM_VERSION = "9" 
+  NPM_VERSION = "9"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    Access-Control-Allow-Origin = "*" 
