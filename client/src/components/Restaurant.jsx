@@ -14,6 +14,15 @@ const CUISINE_TYPES = [
   { id: 'produits_locaux', label: 'Produits locaux' }
 ];
 
+const parseTimeRange = (timeString) => {
+  if (!timeString) return { debut: '12:00', fin: '14:00' };
+  const parts = timeString.split('-').map(t => t.trim());
+  return {
+    debut: parts[0] || '12:00',
+    fin: parts[1] || '14:00'
+  };
+};
+
 const Restaurant = () => {
   const navigate = useNavigate();
   const [restaurants, setRestaurants] = useState([]);
@@ -57,14 +66,8 @@ const Restaurant = () => {
     setEditedRestaurant({
       ...restaurant,
       horaires: {
-        midi: {
-          debut: restaurant.horaires?.midi?.split('-')[0]?.trim() || '12:00',
-          fin: restaurant.horaires?.midi?.split('-')[1]?.trim() || '14:00'
-        },
-        soir: {
-          debut: restaurant.horaires?.soir?.split('-')[0]?.trim() || '19:00',
-          fin: restaurant.horaires?.soir?.split('-')[1]?.trim() || '22:00'
-        }
+        midi: parseTimeRange(restaurant.horaires?.midi),
+        soir: parseTimeRange(restaurant.horaires?.soir)
       },
       cuisine: restaurant.cuisine || []
     });
@@ -80,14 +83,8 @@ const Restaurant = () => {
     setEditedRestaurant({
       ...selectedRestaurant,
       horaires: {
-        midi: {
-          debut: selectedRestaurant.horaires?.midi?.split('-')[0]?.trim() || '12:00',
-          fin: selectedRestaurant.horaires?.midi?.split('-')[1]?.trim() || '14:00'
-        },
-        soir: {
-          debut: selectedRestaurant.horaires?.soir?.split('-')[0]?.trim() || '19:00',
-          fin: selectedRestaurant.horaires?.soir?.split('-')[1]?.trim() || '22:00'
-        }
+        midi: parseTimeRange(selectedRestaurant.horaires?.midi),
+        soir: parseTimeRange(selectedRestaurant.horaires?.soir)
       },
       cuisine: selectedRestaurant.cuisine || []
     });
@@ -214,9 +211,6 @@ const Restaurant = () => {
                     <span className="material-icons text-gray-400 text-5xl">restaurant</span>
                   </div>
                 )}
-                <div className="absolute top-4 right-4 bg-white rounded-full px-2 py-1 text-sm font-medium text-primary">
-                  {restaurant.rating} ★
-                </div>
               </div>
               <div className="p-6">
                 <h2 className="text-xl font-semibold text-primary mb-2">{restaurant.nom}</h2>
@@ -253,6 +247,17 @@ const Restaurant = () => {
             </div>
           ))}
         </div>
+
+        {/* Bouton Modifier */}
+        {selectedRestaurant && !isEditing && (
+          <button
+            onClick={handleEditClick}
+            className="w-full mt-6 px-4 py-3 bg-primary text-white rounded-xl hover:bg-primary/90 flex items-center justify-center gap-2"
+          >
+            <span className="material-icons">edit</span>
+            Modifier les informations
+          </button>
+        )}
 
         {/* Détails du restaurant sélectionné */}
         {selectedRestaurant && (
@@ -307,15 +312,6 @@ const Restaurant = () => {
                         ))}
                       </div>
                     </div>
-
-                    {/* Bouton Modifier */}
-                    <button
-                      onClick={handleEditClick}
-                      className="w-full mt-6 px-4 py-3 bg-primary text-white rounded-xl hover:bg-primary/90 flex items-center justify-center gap-2"
-                    >
-                      <span className="material-icons">edit</span>
-                      Modifier les informations
-                    </button>
                   </div>
                 </>
               ) : (
