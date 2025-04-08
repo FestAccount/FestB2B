@@ -1,5 +1,11 @@
 const express = require('express');
 const cors = require('cors');
+const mongoose = require('mongoose');
+const dotenv = require('dotenv');
+
+// Charger les variables d'environnement
+dotenv.config();
+
 const app = express();
 
 // Liste des origines autorisées
@@ -32,6 +38,14 @@ app.use(cors(corsOptions));
 // Middleware pour parser le JSON
 app.use(express.json());
 
+// Connexion à MongoDB
+mongoose.connect(process.env.MONGODB_URI)
+  .then(() => console.log('Connecté à MongoDB Atlas'))
+  .catch(err => console.error('Erreur de connexion à MongoDB:', err));
+
+// Import du modèle MenuItem
+const MenuItem = require('./models/MenuItem');
+
 // Gestionnaire d'erreurs CORS
 app.use((err, req, res, next) => {
   if (err.message.includes('Non autorisé par CORS')) {
@@ -54,18 +68,22 @@ router.get('/health', (req, res) => {
   res.json({ status: 'OK', message: 'API opérationnelle' });
 });
 
-// Route pour les menus
-router.get('/menu', (req, res) => {
-  // TODO: Implémenter la logique de récupération des menus depuis la base de données
-  res.json([
-    {
-      _id: '1',
-      nom: 'Menu Test',
-      description: 'Description du menu test',
-      prix: 25.00,
-      type: 'plat'
-    }
-  ]);
+// Route pour les menus - maintenant avec MongoDB
+router.get('/menu', async (req, res) => {
+  try {
+    // Récupérer tous les items du menu, triés par catégorie puis par nom
+    const menuItems = await MenuItem.find({ disponible: true })
+      .sort({ categorie: 1, nom: 1 })
+      .select('-__v'); // Exclure le champ __v
+
+    res.json(menuItems);
+  } catch (error) {
+    console.error('Erreur lors de la récupération des items du menu:', error);
+    res.status(500).json({
+      error: 'Erreur serveur',
+      message: 'Impossible de récupérer les items du menu'
+    });
+  }
 });
 
 // Route pour les restaurants
@@ -84,6 +102,15 @@ router.get('/restaurant', (req, res) => {
 
 // Monter les routes sous /api
 app.use('/api', router);
+
+// Gestionnaire d'erreurs global
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({
+    error: 'Erreur serveur',
+    message: 'Une erreur inattendue s\'est produite'
+  });
+});
 
 // Port d'écoute
 const PORT = process.env.PORT || 3001;
