@@ -1,11 +1,10 @@
 import axios from 'axios';
 
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
+  baseURL: import.meta.env.VITE_API_URL || 'https://fest-b2b-backend.onrender.com/api',
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 10000,
 });
 
 // Add error handling
