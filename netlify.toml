@@ -4,19 +4,6 @@
   publish = "dist"
 
 [[redirects]]
-  from = "/api/*"
-  to = "https://fest-b2b-backend.onrender.com/api/:splat"
-  status = 200
-  force = true
-
-[[headers]]
-  for = "/api/*"
-  [headers.values]
-    Access-Control-Allow-Origin = "*"
-    Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
-    Access-Control-Allow-Headers = "Origin, X-Requested-With, Content-Type, Accept, Authorization"
-
-[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
