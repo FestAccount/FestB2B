@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Diagnostic API Fest</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    h1 {
+      border-bottom: 1px solid #eee;
+      padding-bottom: 10px;
+    }
+    .card {
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 15px;
+      margin-bottom: 20px;
+    }
+    .success {
+      background-color: #d4edda;
+      border-color: #c3e6cb;
+      color: #155724;
+    }
+    .error {
+      background-color: #f8d7da;
+      border-color: #f5c6cb;
+      color: #721c24;
+    }
+    .warning {
+      background-color: #fff3cd;
+      border-color: #ffeeba;
+      color: #856404;
+    }
+    .info {
+      background-color: #d1ecf1;
+      border-color: #bee5eb;
+      color: #0c5460;
+    }
+    pre {
+      background: #f8f9fa;
+      border: 1px solid #eee;
+      border-radius: 3px;
+      padding: 10px;
+      overflow-x: auto;
+    }
+    button {
+      background: #007bff;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-right: 10px;
+      margin-bottom: 10px;
+    }
+    button:hover {
+      background: #0069d9;
+    }
+  </style>
+</head>
+<body>
+  <h1>Diagnostic API Fest</h1>
+  
+  <div class="card info">
+    <h2>Informations Système</h2>
+    <p>Cette page permet de diagnostiquer les problèmes de connexion à l'API du restaurant Fest.</p>
+    <div id="system-info"></div>
+  </div>
+
+  <div class="card">
+    <h2>Tests API</h2>
+    <button onclick="testLocalApi()">Tester API Locale</button>
+    <button onclick="testRestaurant()">Tester Endpoint Restaurant</button>
+    <button onclick="testMenu()">Tester Endpoint Menu</button>
+  </div>
+
+  <div id="results"></div>
+
+  <script>
+    // Afficher les informations système
+    document.getElementById('system-info').innerHTML = `
+      <pre>
+User Agent: ${navigator.userAgent}
+Heure: ${new Date().toLocaleString()}
+URL: ${window.location.href}
+      </pre>
+    `;
+
+    // Fonction pour ajouter un résultat
+    function addResult(title, status, message, data) {
+      const resultsDiv = document.getElementById('results');
+      const cardDiv = document.createElement('div');
+      cardDiv.className = `card ${status}`;
+      
+      let dataHtml = '';
+      if (data) {
+        try {
+          if (typeof data === 'string') {
+            dataHtml = `<pre>${data}</pre>`;
+          } else {
+            dataHtml = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+          }
+        } catch (e) {
+          dataHtml = `<pre>Erreur d'affichage des données: ${e.message}</pre>`;
+        }
+      }
+      
+      cardDiv.innerHTML = `
+        <h3>${title}</h3>
+        <p>${message}</p>
+        ${dataHtml}
+      `;
+      
+      resultsDiv.prepend(cardDiv);
+    }
+
+    // Test de l'API locale
+    async function testLocalApi() {
+      try {
+        const response = await fetch('/api/test');
+        
+        if (response.ok) {
+          const data = await response.json();
+          addResult('API Locale', 'success', 'Connexion réussie à l\'API locale', data);
+        } else {
+          addResult('API Locale', 'error', `Erreur ${response.status}: ${response.statusText}`, await response.text());
+        }
+      } catch (error) {
+        addResult('API Locale', 'error', `Erreur de connexion: ${error.message}`);
+      }
+    }
+
+    // Test de l'endpoint Restaurant
+    async function testRestaurant() {
+      try {
+        const response = await fetch('/api/restaurant');
+        
+        if (response.ok) {
+          const data = await response.json();
+          addResult('Endpoint Restaurant', 'success', 'Requête restaurant réussie', data);
+        } else {
+          addResult('Endpoint Restaurant', 'error', `Erreur ${response.status}: ${response.statusText}`, await response.text());
+        }
+      } catch (error) {
+        addResult('Endpoint Restaurant', 'error', `Erreur de connexion: ${error.message}`);
+      }
+    }
+
+    // Test de l'endpoint Menu
+    async function testMenu() {
+      try {
+        const response = await fetch('/api/menu');
+        
+        if (response.ok) {
+          const data = await response.json();
+          addResult('Endpoint Menu', 'success', 'Requête menu réussie', data);
+        } else {
+          addResult('Endpoint Menu', 'error', `Erreur ${response.status}: ${response.statusText}`, await response.text());
+        }
+      } catch (error) {
+        addResult('Endpoint Menu', 'error', `Erreur de connexion: ${error.message}`);
+      }
+    }
+  </script>
+</body>
+</html> 

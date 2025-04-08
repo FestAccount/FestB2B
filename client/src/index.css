@@ -1,0 +1,90 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --primary-color: #1B4332;
+  --secondary-color: #FF6B35;
+}
+
+body {
+  @apply bg-white text-gray-900 antialiased;
+}
+
+.menu-link {
+  @apply px-4 py-2 text-gray-600 hover:text-primary transition-colors duration-200;
+}
+
+.menu-link.active {
+  @apply text-primary font-semibold border-b-2 border-primary;
+}
+
+.menu-card {
+  @apply bg-white rounded-lg shadow-md p-6 mb-4 border border-gray-100 hover:shadow-lg transition-shadow duration-200;
+}
+
+.menu-card-title {
+  @apply text-xl font-semibold text-gray-900 mb-2;
+}
+
+.menu-card-description {
+  @apply text-gray-600 mb-3;
+}
+
+.menu-card-price {
+  @apply text-lg font-bold text-primary;
+}
+
+.nav-link {
+  @apply px-4 py-2 text-gray-600 hover:text-gray-900 transition-colors;
+}
+
+.nav-link.active {
+  @apply text-[#1B4332] font-semibold;
+}
+
+.bottom-nav {
+  @apply fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 py-2;
+}
+
+.bottom-nav-content {
+  @apply flex justify-around items-center max-w-screen-xl mx-auto px-4;
+}
+
+.bottom-nav-link {
+  @apply flex flex-col items-center text-gray-600 hover:text-primary transition-colors duration-200;
+}
+
+.bottom-nav-icon {
+  @apply text-2xl mb-1;
+}
+
+@layer components {
+  .menu-card {
+    @apply bg-white rounded-lg shadow-md overflow-hidden transition-transform hover:scale-[1.02];
+  }
+  
+  .menu-card img {
+    @apply w-full h-48 object-cover;
+  }
+  
+  .menu-card-content {
+    @apply p-4;
+  }
+  
+  .menu-card-actions {
+    @apply mt-4 flex justify-end space-x-2;
+  }
+  
+  .btn {
+    @apply px-4 py-2 rounded-lg font-medium transition-colors;
+  }
+  
+  .btn-primary {
+    @apply bg-blue-600 text-white hover:bg-blue-700;
+  }
+  
+  .btn-danger {
+    @apply bg-red-600 text-white hover:bg-red-700;
+  }
+}
