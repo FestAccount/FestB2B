@@ -130,10 +130,21 @@ const Restaurant = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setEditedRestaurant(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    if (name.startsWith('capacite.')) {
+      const field = name.split('.')[1];
+      setEditedRestaurant(prev => ({
+        ...prev,
+        capacite: {
+          ...prev.capacite,
+          [field]: parseInt(value) || 0
+        }
+      }));
+    } else {
+      setEditedRestaurant(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
   };
 
   const handleTimeChange = (period, type, value) => {
@@ -269,7 +280,10 @@ const Restaurant = () => {
         adresse: editedRestaurant.adresse?.trim() || '',
         telephone: editedRestaurant.telephone?.trim() || '',
         email: editedRestaurant.email?.trim() || '',
-        capacite: parseInt(editedRestaurant.capacite) || 0,
+        capacite: {
+          midi: parseInt(editedRestaurant.capacite?.midi) || 0,
+          soir: parseInt(editedRestaurant.capacite?.soir) || 0
+        },
         cuisine: Array.isArray(editedRestaurant.cuisine) ? editedRestaurant.cuisine : [],
         horaires: formattedHoraires,
         imageUrl: editedRestaurant.imageUrl || ''
@@ -356,8 +370,9 @@ const Restaurant = () => {
               <div className="flex items-center text-gray-500">
                 <span className="material-icons text-sm mr-1">people</span>
                 <div>
-                  <p>{restaurant.capacite?.midi} couverts midi</p>
-                  <p>{restaurant.capacite?.soir} couverts soir</p>
+                  <p>{restaurant.capacite?.midi || 0} couverts midi</p>
+                  <p>{restaurant.capacite?.soir || 0} couverts soir</p>
+                  <p>{(restaurant.capacite?.midi || 0) + (restaurant.capacite?.soir || 0)} couverts total</p>
                 </div>
               </div>
 
