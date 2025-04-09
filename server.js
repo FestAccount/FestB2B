@@ -87,6 +87,35 @@ router.get('/menu', async (req, res) => {
   }
 });
 
+// Route pour mettre à jour un élément du menu
+router.put('/menu/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updateData = req.body;
+
+    const updatedMenuItem = await MenuItem.findByIdAndUpdate(
+      id,
+      updateData,
+      { new: true, runValidators: true }
+    ).select('-__v');
+
+    if (!updatedMenuItem) {
+      return res.status(404).json({
+        error: 'Non trouvé',
+        message: 'Élément du menu non trouvé'
+      });
+    }
+
+    res.json(updatedMenuItem);
+  } catch (error) {
+    console.error('Erreur lors de la mise à jour de l\'élément du menu:', error);
+    res.status(500).json({
+      error: 'Erreur serveur',
+      message: 'Impossible de mettre à jour l\'élément du menu'
+    });
+  }
+});
+
 // Route pour les restaurants - maintenant avec MongoDB
 router.get('/restaurant', async (req, res) => {
   try {
