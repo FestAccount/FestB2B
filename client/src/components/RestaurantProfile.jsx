@@ -1,34 +1,9 @@
-import React, { useState } from 'react';
-import axios from 'axios';
+import React from 'react';
 import { MapPinIcon, PhoneIcon, EnvelopeIcon, ClockIcon } from '@heroicons/react/24/outline';
 
 const RestaurantProfile = ({ restaurant }) => {
-  const [isEditing, setIsEditing] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-
   // Calcul du total des couverts
   const totalCouverts = (restaurant?.capacite?.midi || 0) + (restaurant?.capacite?.soir || 0);
-
-  const handleImageClick = () => {
-    document.getElementById('profile-image-input').click();
-  };
-
-  const handleImageChange = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    try {
-      setIsLoading(true);
-      // Pour l'instant, nous utiliserons une URL temporaire
-      const imageUrl = URL.createObjectURL(file);
-      // onImageUpdate(imageUrl);
-    } catch (error) {
-      console.error('Erreur lors du téléchargement de l\'image:', error);
-    } finally {
-      setIsLoading(false);
-      setIsEditing(false);
-    }
-  };
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
@@ -49,7 +24,7 @@ const RestaurantProfile = ({ restaurant }) => {
       
       {/* Statistiques des couverts */}
       <div className="grid grid-cols-3 gap-4 max-w-sm mx-auto mb-8">
-        <div className="text-center">
+        <div className="text-center p-4 bg-gray-50 rounded-lg">
           <div className="text-2xl font-bold text-gray-800">
             {restaurant?.capacite?.midi || 0}
           </div>
@@ -57,7 +32,7 @@ const RestaurantProfile = ({ restaurant }) => {
             couverts<br/>Midi
           </div>
         </div>
-        <div className="text-center">
+        <div className="text-center p-4 bg-gray-50 rounded-lg">
           <div className="text-2xl font-bold text-gray-800">
             {restaurant?.capacite?.soir || 0}
           </div>
@@ -65,7 +40,7 @@ const RestaurantProfile = ({ restaurant }) => {
             couverts<br/>Soir
           </div>
         </div>
-        <div className="text-center">
+        <div className="text-center p-4 bg-gray-50 rounded-lg">
           <div className="text-2xl font-bold text-gray-800">
             {totalCouverts}
           </div>
@@ -75,7 +50,7 @@ const RestaurantProfile = ({ restaurant }) => {
         </div>
       </div>
 
-      {/* Reste du contenu existant */}
+      {/* Informations du restaurant */}
       <div className="space-y-4">
         <div className="flex items-center">
           <MapPinIcon className="h-5 w-5 text-gray-400 mr-2" />
