@@ -17,7 +17,7 @@ const CUISINE_TYPES = [
 
 const CLOUDINARY_CONFIG = {
   cloudName: 'dxrttyi2g',
-  uploadPreset: 'ml_default',
+  uploadPreset: 'fest_unsigned',
   folder: 'restaurants',
   apiUrl: 'https://api.cloudinary.com/v1_1'
 };
@@ -208,7 +208,8 @@ const Restaurant = () => {
           status: response.status,
           statusText: response.statusText,
           error: errorData.error,
-          message: errorData.message
+          message: errorData.message,
+          response: errorData
         });
         throw new Error(`Upload failed: ${errorData.error?.message || response.statusText}`);
       }
