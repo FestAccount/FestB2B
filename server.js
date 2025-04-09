@@ -148,6 +148,33 @@ router.put('/menu/:id', async (req, res) => {
   }
 });
 
+// Route pour supprimer un élément du menu
+router.delete('/menu/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const deletedMenuItem = await MenuItem.findByIdAndDelete(id);
+    
+    if (!deletedMenuItem) {
+      return res.status(404).json({
+        error: 'Non trouvé',
+        message: 'Élément du menu non trouvé'
+      });
+    }
+
+    res.status(200).json({
+      message: 'Élément supprimé avec succès',
+      deletedItem: deletedMenuItem.toObject({ versionKey: false })
+    });
+  } catch (error) {
+    console.error('Erreur lors de la suppression de l\'élément du menu:', error);
+    res.status(500).json({
+      error: 'Erreur serveur',
+      message: 'Impossible de supprimer l\'élément du menu'
+    });
+  }
+});
+
 // Route pour les restaurants - maintenant avec MongoDB
 router.get('/restaurant', async (req, res) => {
   try {
