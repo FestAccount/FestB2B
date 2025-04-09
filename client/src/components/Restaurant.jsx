@@ -15,19 +15,48 @@ const CUISINE_TYPES = [
   { id: 'produits_locaux', label: 'Produits locaux' }
 ];
 
+const normalizeTime = (timeString) => {
+  if (!timeString) return '12:00';
+  
+  // Supprime les espaces
+  timeString = timeString.trim();
+  
+  // Gère les formats avec 'h' ou ':'
+  const match = timeString.match(/^(\d{1,2})[h:](\d{2})$/);
+  if (match) {
+    const hours = match[1].padStart(2, '0');
+    return `${hours}:${match[2]}`;
+  }
+  
+  // Si c'est déjà au bon format HH:mm
+  if (timeString.match(/^\d{2}:\d{2}$/)) {
+    return timeString;
+  }
+  
+  // Format par défaut si non reconnu
+  return '12:00';
+};
+
 const parseTimeRange = (timeString) => {
   if (!timeString) return { debut: '12:00', fin: '14:00' };
+  
+  // Sépare et nettoie la plage horaire
   const parts = timeString.split('-').map(t => t.trim());
+  
   return {
-    debut: parts[0] || '12:00',
-    fin: parts[1] || '14:00'
+    debut: normalizeTime(parts[0] || '12:00'),
+    fin: normalizeTime(parts[1] || '14:00')
   };
+};
+
+const formatTimeRange = (timeRange) => {
+  if (!timeRange?.debut || !timeRange?.fin) return '';
+  return `${normalizeTime(timeRange.debut)} - ${normalizeTime(timeRange.fin)}`;
 };
 
 const Restaurant = () => {
   const navigate = useNavigate();
-  const [restaurants, setRestaurants] = useState([]);
-  const [selectedRestaurant, setSelectedRestaurant] = useState(null);
+  const [restaurant, setRestaurant] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editedRestaurant, setEditedRestaurant] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
@@ -35,25 +64,41 @@ const Restaurant = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetchRestaurants();
+    fetchRestaurant();
   }, []);
 
-  const fetchRestaurants = async () => {
+  const fetchRestaurant = async () => {
     try {
       setLoading(true);
       const response = await apiClient.get('/restaurant');
-      setRestaurants(response.data);
+      // On prend le premier restaurant pour l'instant
+      const firstRestaurant = response.data[0];
+      setRestaurant(firstRestaurant);
+      setEditedRestaurant({
+        ...firstRestaurant,
+        horaires: {
+          midi: parseTimeRange(firstRestaurant.horaires?.midi),
+          soir: parseTimeRange(firstRestaurant.horaires?.soir)
+        },
+        cuisine: firstRestaurant.cuisine || []
+      });
+      setImagePreview(firstRestaurant.imageUrl);
       setError(null);
     } catch (err) {
-      console.error('Erreur lors du chargement des restaurants:', err);
-      setError('Erreur lors du chargement des restaurants');
+      console.error('Erreur lors du chargement du restaurant:', err);
+      setError('Erreur lors du chargement du restaurant');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleRestaurantClick = (restaurant) => {
-    setSelectedRestaurant(restaurant);
+  const handleEditClick = () => {
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    // Reset edited data
     setEditedRestaurant({
       ...restaurant,
       horaires: {
@@ -63,14 +108,6 @@ const Restaurant = () => {
       cuisine: restaurant.cuisine || []
     });
     setImagePreview(restaurant.imageUrl);
-  };
-
-  const handleEditClick = () => {
-    setIsModalOpen(true);
-  };
-
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
   };
 
   const handleInputChange = (e) => {
@@ -140,16 +177,16 @@ const Restaurant = () => {
       const restaurantData = {
         ...editedRestaurant,
         horaires: {
-          midi: `${editedRestaurant.horaires.midi.debut} - ${editedRestaurant.horaires.midi.fin}`,
-          soir: `${editedRestaurant.horaires.soir.debut} - ${editedRestaurant.horaires.soir.fin}`
+          midi: formatTimeRange(editedRestaurant.horaires.midi),
+          soir: formatTimeRange(editedRestaurant.horaires.soir)
         }
       };
 
       const response = await apiClient.put(`/restaurant/${editedRestaurant._id}`, restaurantData);
-      setSelectedRestaurant(response.data);
+      setRestaurant(response.data);
       setIsModalOpen(false);
       toast.success('Restaurant mis à jour avec succès!');
-      fetchRestaurants();
+      fetchRestaurant(); // Refresh data
     } catch (err) {
       console.error('Erreur lors de la mise à jour:', err);
       toast.error('Erreur lors de la mise à jour du restaurant');
@@ -158,6 +195,7 @@ const Restaurant = () => {
 
   if (loading) return <div className="flex justify-center items-center h-screen">Chargement...</div>;
   if (error) return <div className="text-red-600 text-center py-4">{error}</div>;
+  if (!restaurant) return <div className="text-center py-4">Aucun restaurant trouvé</div>;
 
   return (
     <div className="min-h-screen bg-[#F2F2F7]">
@@ -172,123 +210,75 @@ const Restaurant = () => {
       </header>
 
       {/* Content */}
-      <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
-        {/* Liste des restaurants */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {restaurants.map((restaurant) => (
-            <div 
-              key={restaurant._id}
-              className="bg-white rounded-2xl shadow-sm overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
-              onClick={() => handleRestaurantClick(restaurant)}
+      <div className="max-w-7xl mx-auto px-4 py-6">
+        {/* Bloc d'information du restaurant */}
+        <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+          <div className="p-6 space-y-6">
+            {/* Image */}
+            <div className="relative h-64 w-full rounded-xl overflow-hidden">
+              {restaurant.imageUrl ? (
+                <img 
+                  src={restaurant.imageUrl} 
+                  alt={restaurant.nom}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                  <span className="material-icons text-gray-400 text-6xl">restaurant</span>
+                </div>
+              )}
+            </div>
+
+            {/* Informations */}
+            <div className="space-y-4">
+              <div>
+                <h2 className="text-2xl font-semibold text-primary">{restaurant.nom}</h2>
+                <p className="text-gray-600 mt-2">{restaurant.description}</p>
+              </div>
+
+              <div className="flex items-center text-gray-500">
+                <span className="material-icons text-sm mr-1">location_on</span>
+                <span>{restaurant.adresse}</span>
+              </div>
+              
+              <div className="flex items-center text-gray-500">
+                <span className="material-icons text-sm mr-1">schedule</span>
+                <div>
+                  <p>Midi: {restaurant.horaires?.midi}</p>
+                  <p>Soir: {restaurant.horaires?.soir}</p>
+                </div>
+              </div>
+
+              <div className="flex items-center text-gray-500">
+                <span className="material-icons text-sm mr-1">people</span>
+                <div>
+                  <p>{restaurant.capacite?.midi} couverts midi</p>
+                  <p>{restaurant.capacite?.soir} couverts soir</p>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                {restaurant.cuisine?.map((type, index) => (
+                  <span 
+                    key={index}
+                    className="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-sm"
+                  >
+                    {CUISINE_TYPES.find(t => t.id === type)?.label || type}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Bouton Modifier */}
+            <button
+              onClick={handleEditClick}
+              className="w-full mt-6 px-4 py-3 bg-primary text-white rounded-xl hover:bg-primary/90 flex items-center justify-center gap-2"
             >
-              <div className="relative h-48 w-full">
-                {restaurant.imageUrl ? (
-                  <img 
-                    src={restaurant.imageUrl} 
-                    alt={restaurant.nom}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                    <span className="material-icons text-gray-400 text-5xl">restaurant</span>
-                  </div>
-                )}
-              </div>
-              <div className="p-6">
-                <h2 className="text-xl font-semibold text-primary mb-2">{restaurant.nom}</h2>
-                <p className="text-gray-600 mb-4">{restaurant.description}</p>
-                <div className="flex flex-col space-y-2">
-                  <div className="flex items-center text-gray-500">
-                    <span className="material-icons text-sm mr-1">location_on</span>
-                    <span className="text-sm">{restaurant.adresse}</span>
-                  </div>
-                  <div className="flex items-center text-gray-500">
-                    <span className="material-icons text-sm mr-1">schedule</span>
-                    <span className="text-sm">
-                      Midi: {restaurant.horaires?.midi}, Soir: {restaurant.horaires?.soir}
-                    </span>
-                  </div>
-                  <div className="flex items-center text-gray-500">
-                    <span className="material-icons text-sm mr-1">people</span>
-                    <span className="text-sm">
-                      {restaurant.capacite?.midi} couverts midi, {restaurant.capacite?.soir} couverts soir
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {restaurant.cuisine?.map((type, index) => (
-                      <span 
-                        key={index}
-                        className="px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-xs"
-                      >
-                        {CUISINE_TYPES.find(t => t.id === type)?.label || type}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Détails du restaurant sélectionné */}
-        {selectedRestaurant && (
-          <div className="bg-white rounded-2xl shadow-sm overflow-hidden mt-8">
-            <div className="p-6">
-              <div className="space-y-6">
-                {/* Image */}
-                <div className="relative h-64 w-full rounded-xl overflow-hidden">
-                  {selectedRestaurant.imageUrl ? (
-                    <img 
-                      src={selectedRestaurant.imageUrl} 
-                      alt={selectedRestaurant.nom}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                      <span className="material-icons text-gray-400 text-6xl">restaurant</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Informations */}
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="font-medium text-gray-900">{selectedRestaurant.nom}</h3>
-                    <p className="text-gray-600 mt-1">{selectedRestaurant.description}</p>
-                  </div>
-                  
-                  <div className="flex items-center text-gray-500">
-                    <span className="material-icons text-sm mr-1">schedule</span>
-                    <div>
-                      <p>Midi: {selectedRestaurant.horaires?.midi}</p>
-                      <p>Soir: {selectedRestaurant.horaires?.soir}</p>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-wrap gap-2">
-                    {selectedRestaurant.cuisine?.map((type, index) => (
-                      <span 
-                        key={index}
-                        className="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-sm"
-                      >
-                        {CUISINE_TYPES.find(t => t.id === type)?.label || type}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Bouton Modifier */}
-                <button
-                  onClick={handleEditClick}
-                  className="w-full mt-6 px-4 py-3 bg-primary text-white rounded-xl hover:bg-primary/90 flex items-center justify-center gap-2"
-                >
-                  <span className="material-icons">edit</span>
-                  Modifier les informations
-                </button>
-              </div>
-            </div>
+              <span className="material-icons">edit</span>
+              Modifier les informations
+            </button>
           </div>
-        )}
+        </div>
 
         {/* Modal d'édition */}
         <Transition appear show={isModalOpen} as={Fragment}>
@@ -385,6 +375,19 @@ const Restaurant = () => {
                           />
                         </div>
 
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Adresse
+                          </label>
+                          <input
+                            type="text"
+                            name="adresse"
+                            value={editedRestaurant?.adresse || ''}
+                            onChange={handleInputChange}
+                            className="w-full px-4 py-2 rounded-xl border border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent"
+                          />
+                        </div>
+
                         {/* Horaires */}
                         <div className="space-y-4">
                           <h3 className="font-medium text-gray-900">Horaires</h3>
@@ -430,6 +433,34 @@ const Restaurant = () => {
                                   format="HH:mm"
                                 />
                               </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Nombre de couverts */}
+                        <div className="space-y-4">
+                          <h3 className="font-medium text-gray-900">Nombre de couverts</h3>
+                          
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-sm text-gray-700 mb-2">Midi</label>
+                              <input
+                                type="number"
+                                name="capacite.midi"
+                                value={editedRestaurant?.capacite?.midi || 0}
+                                onChange={handleInputChange}
+                                className="w-full px-4 py-2 rounded-xl border border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm text-gray-700 mb-2">Soir</label>
+                              <input
+                                type="number"
+                                name="capacite.soir"
+                                value={editedRestaurant?.capacite?.soir || 0}
+                                onChange={handleInputChange}
+                                className="w-full px-4 py-2 rounded-xl border border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent"
+                              />
                             </div>
                           </div>
                         </div>
