@@ -16,10 +16,10 @@ const CUISINE_TYPES = [
 ];
 
 const CLOUDINARY_CONFIG = {
-  cloudName: 'dxrttyi2g',
-  uploadPreset: 'fest_b2b',
+  cloudName: 'dzx1jgiob',
+  uploadPreset: 'fest-restaurant',
   folder: 'restaurants',
-  apiUrl: 'https://api.cloudinary.com/v1_1'
+  apiUrl: 'https://api.cloudinary.com/v1_1/dzx1jgiob/image/upload'
 };
 
 const normalizeTime = (timeString) => {
@@ -193,11 +193,9 @@ const Restaurant = () => {
     });
 
     try {
-      // Construction de l'URL
-      const uploadUrl = `${CLOUDINARY_CONFIG.apiUrl}/${CLOUDINARY_CONFIG.cloudName}/image/upload`;
-      console.log('Upload URL:', uploadUrl);
+      console.log('Upload URL:', CLOUDINARY_CONFIG.apiUrl);
 
-      const response = await fetch(uploadUrl, {
+      const response = await fetch(CLOUDINARY_CONFIG.apiUrl, {
         method: 'POST',
         body: formData
       });
