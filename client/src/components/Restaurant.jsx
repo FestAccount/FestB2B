@@ -15,9 +15,12 @@ const CUISINE_TYPES = [
   { id: 'produits_locaux', label: 'Produits locaux' }
 ];
 
-const CLOUDINARY_PRESET = 'fest_upload';
-const CLOUDINARY_CLOUD_NAME = 'dxrttyi2g';
-const CLOUDINARY_FOLDER = 'restaurants';
+const CLOUDINARY_CONFIG = {
+  cloudName: 'dxrttyi2g',
+  uploadPreset: 'ml_default',
+  folder: 'restaurants',
+  apiUrl: 'https://api.cloudinary.com/v1_1'
+};
 
 const normalizeTime = (timeString) => {
   if (!timeString) return '12:00';
@@ -173,48 +176,55 @@ const Restaurant = () => {
       return;
     }
 
+    // Préparation du FormData avec logging
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('upload_preset', CLOUDINARY_PRESET);
-    formData.append('folder', CLOUDINARY_FOLDER);
-    formData.append('tags', 'restaurant');
+    formData.append('upload_preset', CLOUDINARY_CONFIG.uploadPreset);
+    formData.append('folder', CLOUDINARY_CONFIG.folder);
 
     // Debug des données envoyées
-    console.log('FormData entries:', [...formData.entries()].map(entry => ({
-      key: entry[0],
-      value: entry[0] === 'file' ? `File: ${entry[1].name}` : entry[1]
-    })));
+    console.log('Cloudinary Upload Config:', {
+      cloudName: CLOUDINARY_CONFIG.cloudName,
+      uploadPreset: CLOUDINARY_CONFIG.uploadPreset,
+      folder: CLOUDINARY_CONFIG.folder,
+      fileName: file.name,
+      fileType: file.type,
+      fileSize: file.size
+    });
 
     try {
-      const response = await fetch(
-        `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
-        {
-          method: 'POST',
-          body: formData
-        }
-      );
+      // Construction de l'URL
+      const uploadUrl = `${CLOUDINARY_CONFIG.apiUrl}/${CLOUDINARY_CONFIG.cloudName}/image/upload`;
+      console.log('Upload URL:', uploadUrl);
+
+      const response = await fetch(uploadUrl, {
+        method: 'POST',
+        body: formData
+      });
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.error('Cloudinary error:', {
+        console.error('Cloudinary Error Details:', {
           status: response.status,
           statusText: response.statusText,
-          errorData
+          error: errorData.error,
+          message: errorData.message
         });
-        throw new Error(`Erreur ${response.status}: ${errorData.error?.message || response.statusText}`);
+        throw new Error(`Upload failed: ${errorData.error?.message || response.statusText}`);
       }
       
       const data = await response.json();
       
       if (!data.secure_url) {
-        console.error('Missing secure_url in response:', data);
+        console.error('Invalid Cloudinary Response:', data);
         throw new Error('URL de l\'image non reçue');
       }
       
-      console.log('Upload success:', {
+      console.log('Upload Success:', {
         url: data.secure_url,
         format: data.format,
-        size: data.bytes
+        size: data.bytes,
+        path: data.public_id
       });
       
       setImagePreview(data.secure_url);
@@ -224,9 +234,9 @@ const Restaurant = () => {
       }));
       toast.success('Image téléchargée avec succès', { position: "bottom-center" });
     } catch (err) {
-      console.error('Erreur détaillée lors du téléchargement:', err);
+      console.error('Upload Error:', err);
       toast.error(
-        err.message || 'Erreur lors du téléchargement de l\'image',
+        `Erreur d'upload : ${err.message || 'Erreur inconnue'}`,
         { position: "bottom-center" }
       );
     }
