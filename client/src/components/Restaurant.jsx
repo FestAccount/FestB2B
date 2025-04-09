@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Fragment } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Dialog, Transition } from '@headlessui/react';
 import apiClient from '../api/config';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -27,12 +28,11 @@ const Restaurant = () => {
   const navigate = useNavigate();
   const [restaurants, setRestaurants] = useState([]);
   const [selectedRestaurant, setSelectedRestaurant] = useState(null);
-  const [menus, setMenus] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [isEditing, setIsEditing] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [editedRestaurant, setEditedRestaurant] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     fetchRestaurants();
@@ -52,15 +52,6 @@ const Restaurant = () => {
     }
   };
 
-  const fetchMenus = async (restaurantId) => {
-    try {
-      const response = await apiClient.get(`/menu?restaurantId=${restaurantId}`);
-      setMenus(response.data);
-    } catch (err) {
-      console.error('Erreur lors du chargement des menus:', err);
-    }
-  };
-
   const handleRestaurantClick = (restaurant) => {
     setSelectedRestaurant(restaurant);
     setEditedRestaurant({
@@ -75,20 +66,11 @@ const Restaurant = () => {
   };
 
   const handleEditClick = () => {
-    setIsEditing(true);
+    setIsModalOpen(true);
   };
 
-  const handleCancelEdit = () => {
-    setIsEditing(false);
-    setEditedRestaurant({
-      ...selectedRestaurant,
-      horaires: {
-        midi: parseTimeRange(selectedRestaurant.horaires?.midi),
-        soir: parseTimeRange(selectedRestaurant.horaires?.soir)
-      },
-      cuisine: selectedRestaurant.cuisine || []
-    });
-    setImagePreview(selectedRestaurant.imageUrl);
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
   };
 
   const handleInputChange = (e) => {
@@ -165,9 +147,9 @@ const Restaurant = () => {
 
       const response = await apiClient.put(`/restaurant/${editedRestaurant._id}`, restaurantData);
       setSelectedRestaurant(response.data);
-      setIsEditing(false);
+      setIsModalOpen(false);
       toast.success('Restaurant mis à jour avec succès!');
-      fetchRestaurants(); // Rafraîchir la liste
+      fetchRestaurants();
     } catch (err) {
       console.error('Erreur lors de la mise à jour:', err);
       toast.error('Erreur lors de la mise à jour du restaurant');
@@ -248,230 +230,254 @@ const Restaurant = () => {
           ))}
         </div>
 
-        {/* Bouton Modifier */}
-        {selectedRestaurant && !isEditing && (
-          <button
-            onClick={handleEditClick}
-            className="w-full mt-6 px-4 py-3 bg-primary text-white rounded-xl hover:bg-primary/90 flex items-center justify-center gap-2"
-          >
-            <span className="material-icons">edit</span>
-            Modifier les informations
-          </button>
-        )}
-
         {/* Détails du restaurant sélectionné */}
         {selectedRestaurant && (
           <div className="bg-white rounded-2xl shadow-sm overflow-hidden mt-8">
             <div className="p-6">
-              {!isEditing ? (
-                <>
-                  {/* Mode lecture */}
-                  <div className="space-y-6">
-                    <div className="flex justify-between items-start">
-                      <h2 className="text-2xl font-semibold text-primary">Informations du restaurant</h2>
+              <div className="space-y-6">
+                {/* Image */}
+                <div className="relative h-64 w-full rounded-xl overflow-hidden">
+                  {selectedRestaurant.imageUrl ? (
+                    <img 
+                      src={selectedRestaurant.imageUrl} 
+                      alt={selectedRestaurant.nom}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                      <span className="material-icons text-gray-400 text-6xl">restaurant</span>
                     </div>
+                  )}
+                </div>
 
-                    {/* Image */}
-                    <div className="relative h-64 w-full rounded-xl overflow-hidden">
-                      {selectedRestaurant.imageUrl ? (
-                        <img 
-                          src={selectedRestaurant.imageUrl} 
-                          alt={selectedRestaurant.nom}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                          <span className="material-icons text-gray-400 text-6xl">restaurant</span>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Informations */}
-                    <div className="space-y-4">
-                      <div>
-                        <h3 className="font-medium text-gray-900">{selectedRestaurant.nom}</h3>
-                        <p className="text-gray-600 mt-1">{selectedRestaurant.description}</p>
-                      </div>
-                      
-                      <div className="flex items-center text-gray-500">
-                        <span className="material-icons text-sm mr-1">schedule</span>
-                        <div>
-                          <p>Midi: {selectedRestaurant.horaires?.midi}</p>
-                          <p>Soir: {selectedRestaurant.horaires?.soir}</p>
-                        </div>
-                      </div>
-
-                      <div className="flex flex-wrap gap-2">
-                        {selectedRestaurant.cuisine?.map((type, index) => (
-                          <span 
-                            key={index}
-                            className="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-sm"
-                          >
-                            {CUISINE_TYPES.find(t => t.id === type)?.label || type}
-                          </span>
-                        ))}
-                      </div>
+                {/* Informations */}
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="font-medium text-gray-900">{selectedRestaurant.nom}</h3>
+                    <p className="text-gray-600 mt-1">{selectedRestaurant.description}</p>
+                  </div>
+                  
+                  <div className="flex items-center text-gray-500">
+                    <span className="material-icons text-sm mr-1">schedule</span>
+                    <div>
+                      <p>Midi: {selectedRestaurant.horaires?.midi}</p>
+                      <p>Soir: {selectedRestaurant.horaires?.soir}</p>
                     </div>
                   </div>
-                </>
-              ) : (
-                <>
-                  {/* Mode édition */}
-                  <div className="space-y-6">
-                    <h2 className="text-2xl font-semibold text-primary">Modifier les informations</h2>
 
-                    {/* Image */}
-                    <div className="space-y-4">
-                      <div className="relative h-64 w-full rounded-xl overflow-hidden">
-                        {imagePreview ? (
-                          <img 
-                            src={imagePreview} 
-                            alt="Aperçu"
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                            <span className="material-icons text-gray-400 text-6xl">restaurant</span>
-                          </div>
-                        )}
-                      </div>
-                      
-                      <div className="flex justify-center">
-                        <label className="cursor-pointer">
-                          <input
-                            type="file"
-                            className="hidden"
-                            accept="image/*"
-                            onChange={handleImageChange}
-                          />
-                          <div className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">
-                            <span className="material-icons">photo_camera</span>
-                            Modifier l'image
-                          </div>
-                        </label>
-                      </div>
-                    </div>
-
-                    {/* Formulaire */}
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Nom du restaurant
-                        </label>
-                        <input
-                          type="text"
-                          name="nom"
-                          value={editedRestaurant.nom}
-                          onChange={handleInputChange}
-                          className="w-full px-4 py-2 rounded-xl border border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Description
-                        </label>
-                        <textarea
-                          name="description"
-                          value={editedRestaurant.description}
-                          onChange={handleInputChange}
-                          rows="4"
-                          className="w-full px-4 py-2 rounded-xl border border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent"
-                        />
-                      </div>
-
-                      {/* Horaires */}
-                      <div className="space-y-4">
-                        <h3 className="font-medium text-gray-900">Horaires</h3>
-                        
-                        <div className="space-y-3">
-                          <div>
-                            <label className="block text-sm text-gray-700 mb-2">Déjeuner</label>
-                            <div className="flex items-center gap-4">
-                              <TimePicker
-                                onChange={(value) => handleTimeChange('midi', 'debut', value)}
-                                value={editedRestaurant.horaires.midi.debut}
-                                className="time-picker"
-                                clearIcon={null}
-                                format="HH:mm"
-                              />
-                              <span>-</span>
-                              <TimePicker
-                                onChange={(value) => handleTimeChange('midi', 'fin', value)}
-                                value={editedRestaurant.horaires.midi.fin}
-                                className="time-picker"
-                                clearIcon={null}
-                                format="HH:mm"
-                              />
-                            </div>
-                          </div>
-
-                          <div>
-                            <label className="block text-sm text-gray-700 mb-2">Dîner</label>
-                            <div className="flex items-center gap-4">
-                              <TimePicker
-                                onChange={(value) => handleTimeChange('soir', 'debut', value)}
-                                value={editedRestaurant.horaires.soir.debut}
-                                className="time-picker"
-                                clearIcon={null}
-                                format="HH:mm"
-                              />
-                              <span>-</span>
-                              <TimePicker
-                                onChange={(value) => handleTimeChange('soir', 'fin', value)}
-                                value={editedRestaurant.horaires.soir.fin}
-                                className="time-picker"
-                                clearIcon={null}
-                                format="HH:mm"
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Types de cuisine */}
-                      <div className="space-y-3">
-                        <h3 className="font-medium text-gray-900">Types de cuisine</h3>
-                        <div className="grid grid-cols-2 gap-3">
-                          {CUISINE_TYPES.map((type) => (
-                            <label
-                              key={type.id}
-                              className="flex items-center gap-2 p-3 border rounded-xl cursor-pointer hover:bg-gray-50"
-                            >
-                              <input
-                                type="checkbox"
-                                checked={editedRestaurant.cuisine.includes(type.id)}
-                                onChange={() => handleCuisineChange(type.id)}
-                                className="w-5 h-5 text-primary rounded focus:ring-primary"
-                              />
-                              <span>{type.label}</span>
-                            </label>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Boutons d'action */}
-                    <div className="flex gap-4 pt-6">
-                      <button
-                        onClick={handleCancelEdit}
-                        className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50"
+                  <div className="flex flex-wrap gap-2">
+                    {selectedRestaurant.cuisine?.map((type, index) => (
+                      <span 
+                        key={index}
+                        className="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-sm"
                       >
-                        Annuler
-                      </button>
-                      <button
-                        onClick={handleSave}
-                        className="flex-1 px-4 py-3 bg-primary text-white rounded-xl hover:bg-primary/90"
-                      >
-                        Sauvegarder
-                      </button>
-                    </div>
+                        {CUISINE_TYPES.find(t => t.id === type)?.label || type}
+                      </span>
+                    ))}
                   </div>
-                </>
-              )}
+                </div>
+
+                {/* Bouton Modifier */}
+                <button
+                  onClick={handleEditClick}
+                  className="w-full mt-6 px-4 py-3 bg-primary text-white rounded-xl hover:bg-primary/90 flex items-center justify-center gap-2"
+                >
+                  <span className="material-icons">edit</span>
+                  Modifier les informations
+                </button>
+              </div>
             </div>
           </div>
         )}
+
+        {/* Modal d'édition */}
+        <Transition appear show={isModalOpen} as={Fragment}>
+          <Dialog as="div" className="relative z-50" onClose={handleCloseModal}>
+            <Transition.Child
+              as={Fragment}
+              enter="ease-out duration-300"
+              enterFrom="opacity-0"
+              enterTo="opacity-100"
+              leave="ease-in duration-200"
+              leaveFrom="opacity-100"
+              leaveTo="opacity-0"
+            >
+              <div className="fixed inset-0 bg-black bg-opacity-25" />
+            </Transition.Child>
+
+            <div className="fixed inset-0 overflow-y-auto">
+              <div className="flex min-h-full items-center justify-center p-4 text-center">
+                <Transition.Child
+                  as={Fragment}
+                  enter="ease-out duration-300"
+                  enterFrom="opacity-0 scale-95"
+                  enterTo="opacity-100 scale-100"
+                  leave="ease-in duration-200"
+                  leaveFrom="opacity-100 scale-100"
+                  leaveTo="opacity-0 scale-95"
+                >
+                  <Dialog.Panel className="w-full max-w-2xl transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
+                    <Dialog.Title
+                      as="h3"
+                      className="text-lg font-medium leading-6 text-gray-900 mb-4"
+                    >
+                      Modifier les informations
+                    </Dialog.Title>
+
+                    <div className="space-y-6">
+                      {/* Image */}
+                      <div className="space-y-4">
+                        <div className="relative h-64 w-full rounded-xl overflow-hidden">
+                          {imagePreview ? (
+                            <img 
+                              src={imagePreview} 
+                              alt="Aperçu"
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                              <span className="material-icons text-gray-400 text-6xl">restaurant</span>
+                            </div>
+                          )}
+                        </div>
+                        
+                        <div className="flex justify-center">
+                          <label className="cursor-pointer">
+                            <input
+                              type="file"
+                              className="hidden"
+                              accept="image/*"
+                              onChange={handleImageChange}
+                            />
+                            <div className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">
+                              <span className="material-icons">photo_camera</span>
+                              Modifier l'image
+                            </div>
+                          </label>
+                        </div>
+                      </div>
+
+                      {/* Formulaire */}
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Nom du restaurant
+                          </label>
+                          <input
+                            type="text"
+                            name="nom"
+                            value={editedRestaurant?.nom || ''}
+                            onChange={handleInputChange}
+                            className="w-full px-4 py-2 rounded-xl border border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Description
+                          </label>
+                          <textarea
+                            name="description"
+                            value={editedRestaurant?.description || ''}
+                            onChange={handleInputChange}
+                            rows="4"
+                            className="w-full px-4 py-2 rounded-xl border border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent"
+                          />
+                        </div>
+
+                        {/* Horaires */}
+                        <div className="space-y-4">
+                          <h3 className="font-medium text-gray-900">Horaires</h3>
+                          
+                          <div className="space-y-3">
+                            <div>
+                              <label className="block text-sm text-gray-700 mb-2">Déjeuner</label>
+                              <div className="flex items-center gap-4">
+                                <TimePicker
+                                  onChange={(value) => handleTimeChange('midi', 'debut', value)}
+                                  value={editedRestaurant?.horaires.midi.debut}
+                                  className="time-picker"
+                                  clearIcon={null}
+                                  format="HH:mm"
+                                />
+                                <span>-</span>
+                                <TimePicker
+                                  onChange={(value) => handleTimeChange('midi', 'fin', value)}
+                                  value={editedRestaurant?.horaires.midi.fin}
+                                  className="time-picker"
+                                  clearIcon={null}
+                                  format="HH:mm"
+                                />
+                              </div>
+                            </div>
+
+                            <div>
+                              <label className="block text-sm text-gray-700 mb-2">Dîner</label>
+                              <div className="flex items-center gap-4">
+                                <TimePicker
+                                  onChange={(value) => handleTimeChange('soir', 'debut', value)}
+                                  value={editedRestaurant?.horaires.soir.debut}
+                                  className="time-picker"
+                                  clearIcon={null}
+                                  format="HH:mm"
+                                />
+                                <span>-</span>
+                                <TimePicker
+                                  onChange={(value) => handleTimeChange('soir', 'fin', value)}
+                                  value={editedRestaurant?.horaires.soir.fin}
+                                  className="time-picker"
+                                  clearIcon={null}
+                                  format="HH:mm"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Types de cuisine */}
+                        <div className="space-y-3">
+                          <h3 className="font-medium text-gray-900">Types de cuisine</h3>
+                          <div className="grid grid-cols-2 gap-3">
+                            {CUISINE_TYPES.map((type) => (
+                              <label
+                                key={type.id}
+                                className="flex items-center gap-2 p-3 border rounded-xl cursor-pointer hover:bg-gray-50"
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={editedRestaurant?.cuisine.includes(type.id)}
+                                  onChange={() => handleCuisineChange(type.id)}
+                                  className="w-5 h-5 text-primary rounded focus:ring-primary"
+                                />
+                                <span>{type.label}</span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Boutons d'action */}
+                      <div className="flex gap-4 pt-6">
+                        <button
+                          onClick={handleCloseModal}
+                          className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50"
+                        >
+                          Annuler
+                        </button>
+                        <button
+                          onClick={handleSave}
+                          className="flex-1 px-4 py-3 bg-primary text-white rounded-xl hover:bg-primary/90"
+                        >
+                          Sauvegarder
+                        </button>
+                      </div>
+                    </div>
+                  </Dialog.Panel>
+                </Transition.Child>
+              </div>
+            </div>
+          </Dialog>
+        </Transition>
       </div>
 
       {/* Bottom Navigation */}
