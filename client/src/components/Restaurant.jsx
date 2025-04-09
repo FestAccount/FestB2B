@@ -17,7 +17,7 @@ const CUISINE_TYPES = [
 
 const CLOUDINARY_CONFIG = {
   cloudName: 'dxrttyi2g',
-  uploadPreset: 'fest_unsigned',
+  uploadPreset: 'fest_preset',
   folder: 'restaurants',
   apiUrl: 'https://api.cloudinary.com/v1_1'
 };
