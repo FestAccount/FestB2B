@@ -15,21 +15,33 @@ const CUISINE_TYPES = [
   { id: 'produits_locaux', label: 'Produits locaux' }
 ];
 
+const CLOUDINARY_PRESET = 'fest_preset';
+const CLOUDINARY_CLOUD_NAME = 'dxrttyi2g';
+
 const normalizeTime = (timeString) => {
   if (!timeString) return '12:00';
   
-  // Supprime les espaces
-  timeString = timeString.trim();
+  // Supprime les espaces et convertit en minuscules
+  timeString = timeString.trim().toLowerCase();
   
   // Gère les formats avec 'h' ou ':'
   const match = timeString.match(/^(\d{1,2})[h:](\d{2})$/);
   if (match) {
     const hours = match[1].padStart(2, '0');
-    return `${hours}:${match[2]}`;
+    const minutes = match[2];
+    // Validation supplémentaire
+    if (parseInt(hours) > 23 || parseInt(minutes) > 59) {
+      return '12:00';
+    }
+    return `${hours}:${minutes}`;
   }
   
   // Si c'est déjà au bon format HH:mm
   if (timeString.match(/^\d{2}:\d{2}$/)) {
+    const [hours, minutes] = timeString.split(':').map(Number);
+    if (hours > 23 || minutes > 59) {
+      return '12:00';
+    }
     return timeString;
   }
   
@@ -51,7 +63,9 @@ const parseTimeRange = (timeString) => {
 
 const formatTimeRange = (timeRange) => {
   if (!timeRange?.debut || !timeRange?.fin) return '';
-  return `${normalizeTime(timeRange.debut)} - ${normalizeTime(timeRange.fin)}`;
+  const debut = normalizeTime(timeRange.debut);
+  const fin = normalizeTime(timeRange.fin);
+  return `${debut} - ${fin}`;
 };
 
 const Restaurant = () => {
@@ -149,47 +163,81 @@ const Restaurant = () => {
 
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('upload_preset', 'ml_default');
+    formData.append('upload_preset', CLOUDINARY_PRESET);
 
     try {
       const response = await fetch(
-        'https://api.cloudinary.com/v1_1/dxrttyi2g/image/upload',
+        `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
         {
           method: 'POST',
           body: formData
         }
       );
+      
+      if (!response.ok) {
+        throw new Error('Erreur lors du téléchargement');
+      }
+      
       const data = await response.json();
+      
+      if (!data.secure_url) {
+        throw new Error('URL de l\'image non reçue');
+      }
+      
       setImagePreview(data.secure_url);
       setEditedRestaurant(prev => ({
         ...prev,
         imageUrl: data.secure_url
       }));
-      toast.success('Image téléchargée avec succès');
+      toast.success('Image téléchargée avec succès', { position: "bottom-center" });
     } catch (err) {
       console.error('Erreur lors du téléchargement de l\'image:', err);
-      toast.error('Erreur lors du téléchargement de l\'image');
+      toast.error('Erreur lors du téléchargement de l\'image', { position: "bottom-center" });
     }
   };
 
   const handleSave = async () => {
     try {
+      // Validation des données avant envoi
+      if (!editedRestaurant.nom?.trim()) {
+        toast.error('Le nom du restaurant est requis', { position: "bottom-center" });
+        return;
+      }
+
+      // Formatage des horaires
+      const formattedHoraires = {
+        midi: formatTimeRange({
+          debut: normalizeTime(editedRestaurant.horaires?.midi?.debut),
+          fin: normalizeTime(editedRestaurant.horaires?.midi?.fin)
+        }),
+        soir: formatTimeRange({
+          debut: normalizeTime(editedRestaurant.horaires?.soir?.debut),
+          fin: normalizeTime(editedRestaurant.horaires?.soir?.fin)
+        })
+      };
+
+      // Préparation des données
       const restaurantData = {
         ...editedRestaurant,
-        horaires: {
-          midi: formatTimeRange(editedRestaurant.horaires.midi),
-          soir: formatTimeRange(editedRestaurant.horaires.soir)
-        }
+        nom: editedRestaurant.nom.trim(),
+        description: editedRestaurant.description?.trim() || '',
+        adresse: editedRestaurant.adresse?.trim() || '',
+        telephone: editedRestaurant.telephone?.trim() || '',
+        email: editedRestaurant.email?.trim() || '',
+        capacite: parseInt(editedRestaurant.capacite) || 0,
+        cuisine: Array.isArray(editedRestaurant.cuisine) ? editedRestaurant.cuisine : [],
+        horaires: formattedHoraires,
+        imageUrl: editedRestaurant.imageUrl || ''
       };
 
       const response = await apiClient.put(`/restaurant/${editedRestaurant._id}`, restaurantData);
       setRestaurant(response.data);
       setIsModalOpen(false);
-      toast.success('Restaurant mis à jour avec succès!');
+      toast.success('Restaurant mis à jour avec succès!', { position: "bottom-center" });
       fetchRestaurant(); // Refresh data
     } catch (err) {
       console.error('Erreur lors de la mise à jour:', err);
-      toast.error('Erreur lors de la mise à jour du restaurant');
+      toast.error('Erreur lors de la mise à jour du restaurant', { position: "bottom-center" });
     }
   };
 
@@ -199,7 +247,18 @@ const Restaurant = () => {
 
   return (
     <div className="min-h-screen bg-[#F2F2F7]">
-      <ToastContainer />
+      <ToastContainer
+        position="bottom-center"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+      />
       
       {/* Header */}
       <header className="bg-white py-4 border-b border-ios-gray-separator">
