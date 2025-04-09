@@ -15,8 +15,9 @@ const CUISINE_TYPES = [
   { id: 'produits_locaux', label: 'Produits locaux' }
 ];
 
-const CLOUDINARY_PRESET = 'fest_preset';
+const CLOUDINARY_PRESET = 'fest_upload';
 const CLOUDINARY_CLOUD_NAME = 'dxrttyi2g';
+const CLOUDINARY_FOLDER = 'restaurants';
 
 const normalizeTime = (timeString) => {
   if (!timeString) return '12:00';
@@ -159,11 +160,30 @@ const Restaurant = () => {
 
   const handleImageChange = async (e) => {
     const file = e.target.files[0];
-    if (!file) return;
+    
+    // Validation du fichier
+    if (!file) {
+      toast.error('Aucun fichier sélectionné', { position: "bottom-center" });
+      return;
+    }
+
+    // Vérification du type de fichier
+    if (!file.type.startsWith('image/')) {
+      toast.error('Le fichier doit être une image', { position: "bottom-center" });
+      return;
+    }
 
     const formData = new FormData();
     formData.append('file', file);
     formData.append('upload_preset', CLOUDINARY_PRESET);
+    formData.append('folder', CLOUDINARY_FOLDER);
+    formData.append('tags', 'restaurant');
+
+    // Debug des données envoyées
+    console.log('FormData entries:', [...formData.entries()].map(entry => ({
+      key: entry[0],
+      value: entry[0] === 'file' ? `File: ${entry[1].name}` : entry[1]
+    })));
 
     try {
       const response = await fetch(
@@ -175,14 +195,27 @@ const Restaurant = () => {
       );
       
       if (!response.ok) {
-        throw new Error('Erreur lors du téléchargement');
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Cloudinary error:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorData
+        });
+        throw new Error(`Erreur ${response.status}: ${errorData.error?.message || response.statusText}`);
       }
       
       const data = await response.json();
       
       if (!data.secure_url) {
+        console.error('Missing secure_url in response:', data);
         throw new Error('URL de l\'image non reçue');
       }
+      
+      console.log('Upload success:', {
+        url: data.secure_url,
+        format: data.format,
+        size: data.bytes
+      });
       
       setImagePreview(data.secure_url);
       setEditedRestaurant(prev => ({
@@ -191,8 +224,11 @@ const Restaurant = () => {
       }));
       toast.success('Image téléchargée avec succès', { position: "bottom-center" });
     } catch (err) {
-      console.error('Erreur lors du téléchargement de l\'image:', err);
-      toast.error('Erreur lors du téléchargement de l\'image', { position: "bottom-center" });
+      console.error('Erreur détaillée lors du téléchargement:', err);
+      toast.error(
+        err.message || 'Erreur lors du téléchargement de l\'image',
+        { position: "bottom-center" }
+      );
     }
   };
 
