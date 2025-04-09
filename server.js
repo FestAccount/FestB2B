@@ -87,6 +87,38 @@ router.get('/menu', async (req, res) => {
   }
 });
 
+// Route pour ajouter un nouvel élément au menu
+router.post('/menu', async (req, res) => {
+  try {
+    const menuItemData = req.body;
+    
+    // Créer le nouvel élément
+    const newMenuItem = new MenuItem(menuItemData);
+    
+    // Sauvegarder dans la base de données
+    const savedMenuItem = await newMenuItem.save();
+    
+    // Retourner l'élément créé sans le champ __v
+    res.status(201).json(savedMenuItem.toObject({ versionKey: false }));
+  } catch (error) {
+    console.error('Erreur lors de la création de l\'élément du menu:', error);
+    
+    // Si l'erreur est une erreur de validation Mongoose
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({
+        error: 'Erreur de validation',
+        message: 'Les données fournies sont invalides',
+        details: Object.values(error.errors).map(err => err.message)
+      });
+    }
+    
+    res.status(500).json({
+      error: 'Erreur serveur',
+      message: 'Impossible de créer l\'élément du menu'
+    });
+  }
+});
+
 // Route pour mettre à jour un élément du menu
 router.put('/menu/:id', async (req, res) => {
   try {
